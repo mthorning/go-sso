@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/mthorning/go-sso/jwt"
 	"github.com/mthorning/go-sso/types"
@@ -46,13 +45,25 @@ func getUser(email string, password string) (types.User, error) {
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/login", handleLogin).Methods("POST")
+	r.HandleFunc("/authn", handleAuthn).Methods("POST")
 	http.ListenAndServe(":8080", r)
 }
 
+func JSONError(w http.ResponseWriter, err string, code int) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"message": err})
+}
+
+func JSONResponse(w http.ResponseWriter, response []byte) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(response)
+}
+
 func handleLogin(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Error reading form", http.StatusBadRequest)
+		JSONError(w, "Error reading form", http.StatusBadRequest)
 		return
 	}
 
@@ -60,17 +71,37 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	password := r.PostFormValue("password")
 	user, err := getUser(email, password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		JSONError(w, err.Error(), http.StatusForbidden)
 		return
 	}
 
-	jwt := jwt.New(user)
+	token := jwt.New(user)
 
-	json, err := json.Marshal(map[string]string{"jwt": jwt})
+	json, err := json.Marshal(map[string]string{"jwt": token})
 	if err != nil {
-		http.Error(w, "Error marshalling JSON", http.StatusBadRequest)
+		JSONError(w, "Error marshalling JSON", http.StatusBadRequest)
+	}
+	JSONResponse(w, json)
+}
+
+func handleAuthn(w http.ResponseWriter, r *http.Request) {
+	var rBody map[string]string
+	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
+		JSONError(w, "Error reading from request body", http.StatusBadRequest)
+	}
+	token := rBody["jwt"]
+
+	user, err := jwt.Authenticate(token)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusForbidden)
+		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write(json)
+	json, err := json.Marshal(user)
+	if err != nil {
+		JSONError(w, "Error marshalling JSON", http.StatusBadRequest)
+		return
+	}
+	JSONResponse(w, json)
+
 }
