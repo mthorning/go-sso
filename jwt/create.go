@@ -20,7 +20,7 @@ func init() {
 	config.SetConfig(&Conf)
 }
 
-func Create(user types.User) string {
+func New(user types.User) string {
 	header := map[string]string{
 		"alg": "HS256",
 		"typ": "JWT",
@@ -45,7 +45,7 @@ func Create(user types.User) string {
 	utils.CheckErr(err)
 	p := encode(jsonPayload)
 
-	s := createSignature(h, p, []byte(Conf.Secret))
+	s := createSignature(h, p)
 
 	return fmt.Sprintf("%s.%s.%s", h, p, s)
 }
