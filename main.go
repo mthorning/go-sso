@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/mthorning/go-sso/jwt"
 	"github.com/mthorning/go-sso/types"
 	"github.com/mthorning/go-sso/utils"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -28,7 +30,7 @@ func getUser(email string, password string) (types.User, error) {
 	utils.CheckErr(err)
 
 	for _, user := range users {
-		// TODO: password hashing
+		// TODO: password hashing & DB obviously
 		if user.Email == email && user.Password == password {
 			return types.User{
 				Email: user.Email,
@@ -41,25 +43,13 @@ func getUser(email string, password string) (types.User, error) {
 	return types.User{}, errors.New("Username or password does not match")
 }
 
-func newLogin(email string, password string) (string, error) {
+func main() {
+	r := mux.NewRouter()
+	r.HandleFunc("/login", handleLogin).Method("POST")
+}
+
+var handleLogin = mux.HandlerFunc(func(w http.ResponseWriter, h *http.Request) {
 	user, err := getUser(email, password)
 	utils.CheckErr(err)
-
 	return jwt.Create(user), nil
-}
-
-func main() {
-	args := os.Args[1:]
-	if len(args) != 2 {
-		log.Fatal("Need email and password")
-	}
-
-	email := args[0]
-	password := args[1]
-
-	jwt, err := newLogin(email, password)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(jwt)
-}
+})
