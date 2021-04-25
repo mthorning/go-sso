@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/mthorning/go-sso/config"
 	"github.com/mthorning/go-sso/types"
-	"github.com/mthorning/go-sso/utils"
 	"github.com/nu7hatch/gouuid"
 	"time"
 )
@@ -20,14 +19,16 @@ func init() {
 	config.SetConfig(&Conf)
 }
 
-func New(user types.User) string {
+func New(user types.User) (string, error) {
 	header := map[string]string{
 		"alg": "HS256",
 		"typ": "JWT",
 	}
 
 	u, err := uuid.NewV4()
-	utils.CheckErr(err)
+	if err != nil {
+		return "", err
+	}
 
 	payload := map[string]interface{}{
 		"jti":   u.String(),
@@ -38,14 +39,20 @@ func New(user types.User) string {
 	}
 
 	jsonHeader, err := json.Marshal(header)
-	utils.CheckErr(err)
+	if err != nil {
+		return "", err
+	}
+
 	h := encode(jsonHeader)
 
 	jsonPayload, err := json.Marshal(payload)
-	utils.CheckErr(err)
+	if err != nil {
+		return "", err
+	}
+
 	p := encode(jsonPayload)
 
 	s := createSignature(h, p)
 
-	return fmt.Sprintf("%s.%s.%s", h, p, s)
+	return fmt.Sprintf("%s.%s.%s", h, p, s), nil
 }

@@ -3,13 +3,22 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/mthorning/go-sso/config"
 	"github.com/mthorning/go-sso/jwt"
 	"github.com/mthorning/go-sso/types"
-	"github.com/mthorning/go-sso/utils"
+	"html/template"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 )
+
+type Config struct {
+	Port int `default:"8080"`
+}
 
 type DbUser struct {
 	Name     string
@@ -20,7 +29,9 @@ type DbUser struct {
 
 func getUser(email string, password string) (types.User, error) {
 	jsonFile, err := ioutil.ReadFile("users.json")
-	utils.CheckErr(err)
+	if err != nil {
+		return types.User{}, errors.New("Cannot read users.json")
+	}
 
 	var users []DbUser
 	err = json.Unmarshal([]byte(jsonFile), &users)
@@ -43,10 +54,22 @@ func getUser(email string, password string) (types.User, error) {
 }
 
 func main() {
+	var conf Config
+	config.SetConfig(&conf)
+
 	r := mux.NewRouter()
 	r.HandleFunc("/login", handleLogin).Methods("POST")
 	r.HandleFunc("/authn", handleAuthn).Methods("POST")
-	http.ListenAndServe(":8080", r)
+
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		serveStaticPage(w, r, nil)
+	}).Methods("GET")
+
+	fmt.Println("Serving on port", conf.Port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), r); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func JSONError(w http.ResponseWriter, err string, code int) {
@@ -61,6 +84,36 @@ func JSONResponse(w http.ResponseWriter, response []byte) {
 	w.Write(response)
 }
 
+func serveStaticPage(w http.ResponseWriter, r *http.Request, templateData interface{}) {
+	lp := filepath.Join("templates", "layout.html")
+	fp := filepath.Join("templates", filepath.Clean(r.URL.Path))
+
+	info, err := os.Stat(fp)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.NotFound(w, r)
+			return
+		} else {
+			JSONError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	if info.IsDir() {
+		fp = filepath.Join("templates", "index.html")
+	}
+
+	tmpl, err := template.ParseFiles(lp, fp)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "layout", templateData); err != nil {
+		JSONError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func handleLogin(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		JSONError(w, "Error reading form", http.StatusBadRequest)
@@ -71,15 +124,21 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	password := r.PostFormValue("password")
 	user, err := getUser(email, password)
 	if err != nil {
-		JSONError(w, err.Error(), http.StatusForbidden)
+		r.URL.Path = "/"
+		serveStaticPage(w, r, "Email or password incorrect")
 		return
 	}
 
-	token := jwt.New(user)
+	token, err := jwt.New(user)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	json, err := json.Marshal(map[string]string{"jwt": token})
 	if err != nil {
-		JSONError(w, "Error marshalling JSON", http.StatusBadRequest)
+		JSONError(w, "Error marshalling JSON", http.StatusInternalServerError)
+		return
 	}
 	JSONResponse(w, json)
 }
@@ -87,7 +146,8 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 func handleAuthn(w http.ResponseWriter, r *http.Request) {
 	var rBody map[string]string
 	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
-		JSONError(w, "Error reading from request body", http.StatusBadRequest)
+		JSONError(w, "Error reading from request body", http.StatusInternalServerError)
+		return
 	}
 	token := rBody["jwt"]
 
@@ -99,9 +159,8 @@ func handleAuthn(w http.ResponseWriter, r *http.Request) {
 
 	json, err := json.Marshal(user)
 	if err != nil {
-		JSONError(w, "Error marshalling JSON", http.StatusBadRequest)
+		JSONError(w, "Error marshalling JSON", http.StatusInternalServerError)
 		return
 	}
 	JSONResponse(w, json)
-
 }
