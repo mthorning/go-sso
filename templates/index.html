@@ -12,9 +12,11 @@
           <input class="u-full-width" type="password" id="password" name="password">
         </div>
     </div>
-    <input class="button-primary u-pull-right" type="submit" value="sign in">
-    <a style="margin: 20px auto;" class="u-cf" href="/register">sign up</a>
-    {{if .}}<p style="color: red; text-align: center;">{{.}}</p>{{end}}
+    <div style="margin-top: 30px;display:flex;flex-direction:column;align-items:center">
+        <input class="button-primary" type="submit" value="sign in">
+        <a href="/register">sign up</a>
+        {{if .}}<p style="color:red;text-align:center;">{{.}}</p>{{end}}
+    </div>
 </form>
 {{end}}
 

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/mthorning/go-sso/config"
+	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/jwt"
 	"github.com/mthorning/go-sso/types"
 	"html/template"
@@ -14,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type Config struct {
@@ -53,29 +56,59 @@ func getUser(email string, password string) (types.User, error) {
 	return types.User{}, errors.New("Username or password does not match")
 }
 
+type CatchAll struct{}
+
+func (c CatchAll) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	serveStaticPage(w, r, nil)
+}
+
 func main() {
 	var conf Config
 	config.SetConfig(&conf)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/login", handleLogin).Methods("POST")
+	r.HandleFunc("/register", handleRegister).Methods("POST")
 	r.HandleFunc("/authn", handleAuthn).Methods("POST")
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		serveStaticPage(w, r, nil)
-	}).Methods("GET")
+	var c CatchAll
+	r.PathPrefix("/").Handler(c)
 
-	fmt.Println("Serving on port", conf.Port)
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), r); err != nil {
-		log.Fatal(err)
+	srv := &http.Server{
+		Handler:      r,
+		Addr:         fmt.Sprintf("127.0.0.1:%d", conf.Port),
+		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  30 * time.Second,
 	}
+
+	log.Fatal(srv.ListenAndServe())
 }
 
 func JSONError(w http.ResponseWriter, err string, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(map[string]string{"message": err})
+}
+
+func HTMLError(w http.ResponseWriter, errStr string, code int) {
+	lp := filepath.Join("templates", "layout.html")
+	ep := filepath.Join("templates", "error.html")
+
+	tmpl, err := template.ParseFiles(lp, ep)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "layout",
+		struct {
+			Code  int
+			Error string
+		}{code, errStr}); err != nil {
+		JSONError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func JSONResponse(w http.ResponseWriter, response []byte) {
@@ -86,20 +119,26 @@ func JSONResponse(w http.ResponseWriter, response []byte) {
 
 func serveStaticPage(w http.ResponseWriter, r *http.Request, templateData interface{}) {
 	lp := filepath.Join("templates", "layout.html")
-	fp := filepath.Join("templates", filepath.Clean(r.URL.Path))
+	file := filepath.Clean(r.URL.Path)
+	if file == "/" {
+		file = "index"
+	}
+
+	fp := filepath.Join("templates", fmt.Sprintf("%s.html", file))
 
 	info, err := os.Stat(fp)
 	if err != nil {
 		if os.IsNotExist(err) {
-			http.NotFound(w, r)
+			HTMLError(w, "Page Not Found", http.StatusNotFound)
 			return
 		} else {
-			JSONError(w, err.Error(), http.StatusInternalServerError)
+			HTMLError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 	if info.IsDir() {
-		fp = filepath.Join("templates", "index.html")
+		HTMLError(w, "Page Not Found", http.StatusNotFound)
+		return
 	}
 
 	tmpl, err := template.ParseFiles(lp, fp)
@@ -141,6 +180,26 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	JSONResponse(w, json)
+}
+
+func handleRegister(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		JSONError(w, "Error reading form", http.StatusBadRequest)
+		return
+	}
+
+	email := r.PostFormValue("email")
+	password := r.PostFormValue("password")
+	name := r.PostFormValue("name")
+
+	_, _, err := firestore.Users.Add(context.Background(), struct {
+		Email    string
+		Password string
+		Name     string
+	}{email, password, name})
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusBadRequest)
+	}
 }
 
 func handleAuthn(w http.ResponseWriter, r *http.Request) {
