@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/mitchellh/mapstructure"
 	"github.com/mthorning/go-sso/config"
 	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/jwt"
+	"github.com/mthorning/go-sso/server"
 	"github.com/mthorning/go-sso/types"
+	"golang.org/x/crypto/bcrypt"
 	"html/template"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -21,39 +22,6 @@ import (
 
 type Config struct {
 	Port int `default:"8080"`
-}
-
-type DbUser struct {
-	Name     string
-	Password string
-	Email    string
-	Admin    bool
-}
-
-func getUser(email string, password string) (types.User, error) {
-	jsonFile, err := ioutil.ReadFile("users.json")
-	if err != nil {
-		return types.User{}, errors.New("Cannot read users.json")
-	}
-
-	var users []DbUser
-	err = json.Unmarshal([]byte(jsonFile), &users)
-	if err != nil {
-		return types.User{}, errors.New("Cannot unmarshall users")
-	}
-
-	for _, user := range users {
-		// TODO: password hashing & DB obviously
-		if user.Email == email && user.Password == password {
-			return types.User{
-				Email: user.Email,
-				Name:  user.Name,
-				Admin: user.Admin,
-			}, nil
-		}
-	}
-
-	return types.User{}, errors.New("Username or password does not match")
 }
 
 type CatchAll struct{}
@@ -106,7 +74,7 @@ func HTMLError(w http.ResponseWriter, errStr string, code int) {
 			Code  int
 			Error string
 		}{code, errStr}); err != nil {
-		JSONError(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -153,21 +121,8 @@ func serveStaticPage(w http.ResponseWriter, r *http.Request, templateData interf
 	}
 }
 
-func handleLogin(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		JSONError(w, "Error reading form", http.StatusBadRequest)
-		return
-	}
-
-	email := r.PostFormValue("email")
-	password := r.PostFormValue("password")
-	user, err := getUser(email, password)
-	if err != nil {
-		r.URL.Path = "/"
-		serveStaticPage(w, r, "Email or password incorrect")
-		return
-	}
-
+func getJWT(w http.ResponseWriter, user types.User) {
+	// Not sure about this yet
 	token, err := jwt.New(user)
 	if err != nil {
 		JSONError(w, err.Error(), http.StatusInternalServerError)
@@ -179,7 +134,40 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		JSONError(w, "Error marshalling JSON", http.StatusInternalServerError)
 		return
 	}
+
 	JSONResponse(w, json)
+}
+
+func handleLogin(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		HTMLError(w, "Error reading form", http.StatusBadRequest)
+		return
+	}
+
+	email := r.PostFormValue("email")
+	password := r.PostFormValue("password")
+
+	var invalid = func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = "/"
+		serveStaticPage(w, r, "Email or password incorrect")
+	}
+
+	dsnap, err := firestore.Users.Doc(email).Get(context.Background())
+	if err != nil {
+		invalid(w, r)
+		return
+	}
+
+	var user types.DbUser
+	mapstructure.Decode(dsnap.Data(), &user)
+
+	if err = bcrypt.CompareHashAndPassword(user.Password, []byte(password)); err != nil {
+		invalid(w, r)
+		return
+	}
+
+	server.GetSession(w, r, user)
+	http.Redirect(w, r, "/welcome", http.StatusFound)
 }
 
 func handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -192,14 +180,24 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 	password := r.PostFormValue("password")
 	name := r.PostFormValue("name")
 
-	_, _, err := firestore.Users.Add(context.Background(), struct {
+	// TODO Check for duplicate email
+
+	pw, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = firestore.Users.Doc(email).Set(context.Background(), struct {
 		Email    string
-		Password string
+		Password []byte
 		Name     string
-	}{email, password, name})
+	}{email, pw, name})
 	if err != nil {
 		HTMLError(w, err.Error(), http.StatusBadRequest)
+		return
 	}
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func handleAuthn(w http.ResponseWriter, r *http.Request) {

@@ -5,3 +5,10 @@ type User struct {
 	Email string
 	Admin bool
 }
+
+type DbUser struct {
+	Name     string
+	Password []byte
+	Email    string
+	Admin    bool
+}
