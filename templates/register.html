@@ -5,18 +5,21 @@
 <p>Please fill out the form to create a new account.</p>
 <form action="/register" method="POST">
     <div class="row">
-      <label for="name">Name</label>
-      <input class="u-full-width" type="text" id="name" name="name">
-      <label for="email">Email</label>
-      <input class="u-full-width" type="email" id="email" name="email">
+      <label for="name" >Name</label>
+      <input class="u-full-width" type="text" id="name" name="name" value="{{.Name}}">
+      <label for="email" >Email</label>
+      <input class="u-full-width" type="email" id="email" name="email" value="{{.Email}}">
       <label for="password">Password</label>
       <input class="u-full-width" type="password" id="password" name="password">
     </div>
     <div style="margin-top: 30px;display:flex;flex-direction:column;align-items:center">
         <input class="button-primary u-pull-right" type="submit" value="sign up">
-        {{if .}}<p style="color:red;text-align:center;">{{.}}</p>{{end}}
     </div>
 </form>
+<div style="margin-top: 30px;display:flex;flex-direction:column;align-items:center">
+    <p>Already have an account? <a href="/login">Sign in.</a></p>
+    {{if .Error}}<p style="color:red;text-align:center;">{{.Error}}</p>{{end}}
+</div>
 {{end}}
 
 

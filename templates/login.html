@@ -5,7 +5,7 @@
     <div class="row">
         <div class="six columns">
           <label for="email">Email</label>
-          <input class="u-full-width" type="email" id="email" name="email">
+          <input class="u-full-width" type="email" id="email" name="email" value="{{.Email}}">
         </div>
         <div class="six columns">
           <label for="password">Password</label>
@@ -15,7 +15,7 @@
     <div style="margin-top: 30px;display:flex;flex-direction:column;align-items:center">
         <input class="button-primary" type="submit" value="sign in">
         <a href="/register">sign up</a>
-        {{if .}}<p style="color:red;text-align:center;">{{.}}</p>{{end}}
+        {{if .Error}}<p style="color:red;text-align:center;">{{.Error}}</p>{{end}}
     </div>
 </form>
 {{end}}
