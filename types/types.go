@@ -7,6 +7,7 @@ type User struct {
 }
 
 type DbUser struct {
+	ID       string
 	Name     string
 	Password []byte
 	Email    string

@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mitchellh/mapstructure"
 	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/jwt"
+	// "github.com/mthorning/go-sso/session"
 	"github.com/mthorning/go-sso/types"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/api/iterator"
@@ -89,7 +89,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := firestore.Users.Select("Password").Where("Email", "==", email)
+	query := firestore.Users.Where("Email", "==", email)
 	iter := query.Documents(context.Background())
 	defer iter.Stop()
 	doc, err := iter.Next()
@@ -103,13 +103,14 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user types.DbUser
-	mapstructure.Decode(doc.Data(), &user)
+	doc.DataTo(&user)
 
 	if err = bcrypt.CompareHashAndPassword(user.Password, []byte(password)); err != nil {
 		sendError("Email or password incorrect")
 		return
 	}
 
+	// session.GetSession(r, w, user.ID)
 	http.Redirect(w, r, "/welcome", http.StatusFound)
 }
 
