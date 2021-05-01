@@ -73,6 +73,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	email := r.PostFormValue("email")
 	password := r.PostFormValue("password")
+	passwordAgain := r.PostFormValue("passwordAgain")
 	name := r.PostFormValue("name")
 
 	var sendError = func(errorMessage string) {
@@ -92,6 +93,10 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	if password == "" {
 		sendError("Please enter a password")
+		return
+	}
+	if password != passwordAgain {
+		sendError("Passwords do not match")
 		return
 	}
 

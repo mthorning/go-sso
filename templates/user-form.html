@@ -1,0 +1,23 @@
+{{define "userForm"}}
+<form action="/register" method="POST">
+    <div class="row">
+      <label for="name" >Name</label>
+      <input class="u-full-width" type="text" id="name" name="name" value="{{.name}}">
+      <label for="email" >Email</label>
+      <input class="u-full-width" type="email" id="email" name="email" value="{{.email}}">
+      {{if not .hidePassword}}
+        <label for="password">Password</label>
+        <input class="u-full-width" type="password" id="password" name="password">
+        <label for="passwordAgain">Re-enter password</label>
+        <input class="u-full-width" type="password" id="passwordAgain" name="passwordAgain">
+      {{end}}
+    </div>
+    <div style="margin-top: 30px;display:flex;flex-direction:column;align-items:center">
+        <input class="button-primary u-pull-right" type="submit" value="sign up">
+    </div>
+</form>
+<div style="margin-top: 30px;display:flex;flex-direction:column;align-items:center">
+    <p>Already have an account? <a href="/login">Sign in.</a></p>
+    {{if .error}}<p style="color:red;text-align:center;">{{.error}}</p>{{end}}
+</div>
+{{end}}

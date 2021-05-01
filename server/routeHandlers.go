@@ -49,6 +49,7 @@ func NoAuthRoutes(w http.ResponseWriter, r *http.Request) {
 
 func ServeStaticPage(w http.ResponseWriter, r *http.Request, file string, templateData interface{}) {
 	lp := filepath.Join("templates", "layout.html")
+	up := filepath.Join("templates", "user-form.html")
 
 	fp := filepath.Join("templates", fmt.Sprintf("%s.html", file))
 
@@ -67,7 +68,7 @@ func ServeStaticPage(w http.ResponseWriter, r *http.Request, file string, templa
 		return
 	}
 
-	tmpl, err := template.ParseFiles(lp, fp)
+	tmpl, err := template.ParseFiles(lp, up, fp)
 	if err != nil {
 		HTMLError(w, err.Error(), http.StatusInternalServerError)
 		return
