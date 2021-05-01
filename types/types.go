@@ -1,6 +1,7 @@
 package types
 
 type User struct {
+	ID    string
 	Name  string
 	Email string
 	Admin bool

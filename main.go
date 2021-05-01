@@ -30,6 +30,7 @@ func main() {
 
 	r.HandleFunc("/login", server.NoAuthRoutes)
 	r.HandleFunc("/register", server.NoAuthRoutes)
+	r.HandleFunc("/register-success", server.NoAuthRoutes)
 	r.PathPrefix("/").Handler(server.AuthRoutes{})
 
 	srv := &http.Server{

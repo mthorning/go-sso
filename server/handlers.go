@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/jwt"
-	// "github.com/mthorning/go-sso/session"
+	"github.com/mthorning/go-sso/session"
 	"github.com/mthorning/go-sso/types"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/api/iterator"
@@ -20,12 +20,16 @@ import (
 type AuthRoutes struct{}
 
 func (c AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// check session
-	// if true {
-	// 	ServeLoginPage(w, r)
-	// 	return
-	// }
-	ServeStaticPage(w, r, nil)
+	user, err := session.GetSession(w, r)
+	if _, ok := err.(session.NoSessionError); ok {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	ServeStaticPage(w, r, user)
 }
 
 func NoAuthRoutes(w http.ResponseWriter, r *http.Request) {
@@ -55,12 +59,12 @@ func ServeStaticPage(w http.ResponseWriter, r *http.Request, templateData interf
 
 	tmpl, err := template.ParseFiles(lp, fp)
 	if err != nil {
-		JSONError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "layout", templateData); err != nil {
-		JSONError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -110,7 +114,10 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// session.GetSession(r, w, user.ID)
+	if err := session.SetSession(w, r, &user); err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, "/welcome", http.StatusFound)
 }
 
@@ -176,7 +183,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 		HTMLError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	http.Redirect(w, r, "/login", http.StatusFound)
+	http.Redirect(w, r, "/register-success", http.StatusFound)
 }
 
 func HandleAuthn(w http.ResponseWriter, r *http.Request) {

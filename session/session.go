@@ -1,13 +1,15 @@
-package server
+package session
 
 import (
 	"github.com/gorilla/sessions"
 	"github.com/mthorning/go-sso/config"
+	"github.com/mthorning/go-sso/types"
 	"net/http"
 )
 
 type Config struct {
-	SessionKey string `default:"devsessionkey"`
+	SessionKey  string `default:"devsessionkey"`
+	SessionName string `default:"go-sso"`
 }
 
 var (
@@ -20,12 +22,44 @@ func init() {
 	store = sessions.NewFilesystemStore("", []byte(conf.SessionKey))
 }
 
-func GetSession(w http.ResponseWriter, r *http.Request, userID string) {
-	session, _ := store.Get(r, "sso-session")
-	session.Values["id"] = userID
-	err := session.Save(r, w)
+func SetSession(w http.ResponseWriter, r *http.Request, user *types.DbUser) error {
+	session, err := store.Get(r, conf.SessionName)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return err
 	}
+
+	session.Values["id"] = user.ID
+	session.Values["name"] = user.Name
+	session.Values["admin"] = user.Admin
+	err = session.Save(r, w)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type NoSessionError struct{}
+
+func (e NoSessionError) Error() string {
+	return "No session exists for this user"
+}
+func GetSession(w http.ResponseWriter, r *http.Request) (*types.User, error) {
+	session, err := store.Get(r, conf.SessionName)
+	if err != nil {
+		return nil, err
+	}
+	id, ok := session.Values["id"].(string)
+	if !ok {
+		return nil, NoSessionError{}
+	}
+
+	name := session.Values["name"].(string)
+	admin := session.Values["admin"].(bool)
+
+	user := types.User{
+		ID:    id,
+		Name:  name,
+		Admin: admin,
+	}
+	return &user, nil
 }
