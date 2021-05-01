@@ -32,19 +32,24 @@ func (a AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templateData := a.getData(filepath.Clean(r.URL.Path))
+	file := filepath.Clean(r.URL.Path)
+	if file == "/" {
+		file = "index"
+	}
+	templateData := a.getData(file)
 	templateData["session"] = s
-	ServeStaticPage(w, r, templateData)
+
+	ServeStaticPage(w, r, file, templateData)
 }
 
 func NoAuthRoutes(w http.ResponseWriter, r *http.Request) {
-	ServeStaticPage(w, r, nil)
+	file := filepath.Clean(r.URL.Path)
+	ServeStaticPage(w, r, file, nil)
 }
 
-func ServeStaticPage(w http.ResponseWriter, r *http.Request, templateData interface{}) {
+func ServeStaticPage(w http.ResponseWriter, r *http.Request, file string, templateData interface{}) {
 	lp := filepath.Join("templates", "layout.html")
 
-	file := filepath.Clean(r.URL.Path)
 	fp := filepath.Join("templates", fmt.Sprintf("%s.html", file))
 
 	info, err := os.Stat(fp)

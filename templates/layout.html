@@ -10,7 +10,11 @@
 </head>
 <body>
     {{if .session}}
-    <p class="u-pull-right" style="margin:20px;">{{.session.Name}} <a href="logout">(sign out)</a>.</p>
+    <form action="/logout" method="POST">
+        <p class="u-pull-right" style="margin:20px;">
+            <button type="submit">sign out</button>
+        </p>
+    </form>
     {{end}}
     <div class="container" style="padding-top:90px;max-width:800px;">
         {{template "body" .}}

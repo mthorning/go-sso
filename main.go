@@ -25,6 +25,7 @@ func main() {
 	r.HandleFunc("/login", server.HandleLogin).Methods("POST")
 	r.HandleFunc("/register", server.HandleRegister).Methods("POST")
 	r.HandleFunc("/authn", server.HandleAuthn).Methods("POST")
+	r.HandleFunc("/logout", server.HandleLogout).Methods("POST")
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 

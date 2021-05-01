@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"strconv"
 )
 
 func JSONError(w http.ResponseWriter, err string, code int) {
@@ -26,10 +27,10 @@ func HTMLError(w http.ResponseWriter, errStr string, code int) {
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "layout",
-		struct {
-			Code  int
-			Error string
-		}{code, errStr}); err != nil {
+		map[string]string{
+			"code":  strconv.Itoa(code),
+			"error": errStr,
+		}); err != nil {
 		return
 	}
 }

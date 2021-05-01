@@ -23,7 +23,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	password := r.PostFormValue("password")
 
 	var sendError = func(errorMessage string) {
-		ServeStaticPage(w, r, map[string]string{
+		ServeStaticPage(w, r, "error", map[string]string{
 			"email": email,
 			"error": errorMessage,
 		})
@@ -62,7 +62,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		HTMLError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/welcome", http.StatusFound)
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func HandleRegister(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +76,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	name := r.PostFormValue("name")
 
 	var sendError = func(errorMessage string) {
-		ServeStaticPage(w, r, map[string]string{
+		ServeStaticPage(w, r, "error", map[string]string{
 			"name":  name,
 			"email": email,
 			"error": errorMessage,
@@ -150,4 +150,12 @@ func HandleAuthn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	JSONResponse(w, json)
+}
+
+func HandleLogout(w http.ResponseWriter, r *http.Request) {
+	err := session.EndSession(w, r)
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+	}
+	http.Redirect(w, r, "/", http.StatusFound)
 }

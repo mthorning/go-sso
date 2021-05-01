@@ -23,15 +23,15 @@ func init() {
 }
 
 func SetSession(w http.ResponseWriter, r *http.Request, user *types.DbUser) error {
-	session, err := store.Get(r, conf.SessionName)
+	s, err := store.Get(r, conf.SessionName)
 	if err != nil {
 		return err
 	}
 
-	session.Values["id"] = user.ID
-	session.Values["name"] = user.Name
-	session.Values["admin"] = user.Admin
-	err = session.Save(r, w)
+	s.Values["id"] = user.ID
+	s.Values["name"] = user.Name
+	s.Values["admin"] = user.Admin
+	err = s.Save(r, w)
 	if err != nil {
 		return err
 	}
@@ -44,17 +44,17 @@ func (e NoSessionError) Error() string {
 	return "No session exists for this user"
 }
 func GetSession(w http.ResponseWriter, r *http.Request) (*types.Session, error) {
-	session, err := store.Get(r, conf.SessionName)
+	s, err := store.Get(r, conf.SessionName)
 	if err != nil {
 		return nil, err
 	}
-	id, ok := session.Values["id"].(string)
+	id, ok := s.Values["id"].(string)
 	if !ok {
 		return nil, NoSessionError{}
 	}
 
-	name := session.Values["name"].(string)
-	admin := session.Values["admin"].(bool)
+	name := s.Values["name"].(string)
+	admin := s.Values["admin"].(bool)
 
 	user := types.Session{
 		ID:    id,
@@ -62,4 +62,17 @@ func GetSession(w http.ResponseWriter, r *http.Request) (*types.Session, error) 
 		Admin: admin,
 	}
 	return &user, nil
+}
+
+func EndSession(w http.ResponseWriter, r *http.Request) error {
+	s, err := store.Get(r, conf.SessionName)
+	if err != nil {
+		return err
+	}
+	s.Options.MaxAge = -1
+	err = s.Save(r, w)
+	if err != nil {
+		return err
+	}
+	return nil
 }
