@@ -3,22 +3,32 @@ package server
 import (
 	"fmt"
 	"github.com/mthorning/go-sso/session"
+	"github.com/mthorning/go-sso/types"
 	"html/template"
 	"net/http"
 	"os"
 	"path/filepath"
 )
 
+type RouteConfig = map[string]func(session *types.Session) (map[string]interface{}, error)
+
 type AuthRoutes struct {
-	config map[string]func() map[string]interface{}
+	Session *types.Session
+	Config  RouteConfig
 }
 
-func (a AuthRoutes) getData(path string) map[string]interface{} {
-	getDataFunc, ok := a.config[path]
-	if !ok {
-		return map[string]interface{}{}
+func (a AuthRoutes) getData(path string) (map[string]interface{}, error) {
+	templateData := make(map[string]interface{})
+	if a.Session != nil {
+		templageData["session"] = a.Session
 	}
-	return getDataFunc()
+
+	getDataFunc, ok := a.Config[path]
+	if !ok {
+		return templateData, nil
+	}
+	// HERE, GET DATA AND THEN ADD IT TO TEMPLATEDATA ABOVE
+	return getDataFunc(a.Session)
 }
 
 func (a AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -31,13 +41,16 @@ func (a AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		HTMLError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	a.Session = s
 
 	file := filepath.Clean(r.URL.Path)
 	if file == "/" {
 		file = "index"
 	}
-	templateData := a.getData(file)
-	templateData["session"] = s
+	templateData, err := a.getData(file)
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+	}
 
 	ServeStaticPage(w, r, file, templateData)
 }

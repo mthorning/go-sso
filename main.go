@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/mthorning/go-sso/config"
+	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/server"
+	"github.com/mthorning/go-sso/types"
 	"log"
 	"net/http"
 	"time"
@@ -20,6 +23,23 @@ func init() {
 	config.SetConfig(&conf)
 }
 
+var routeConfig = server.RouteConfig{
+	"/edit-user": func(s *types.Session) (map[string]interface{}, error) {
+		dsnap, err := firestore.Users.Doc(s.ID).Get(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		var user types.User
+		dsnap.DataTo(user)
+		fmt.Println(user)
+		return map[string]interface{}{
+			"hidePassword": true,
+			"name":         user.Name,
+			"email":        user.Email,
+		}, nil
+	},
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/login", server.HandleLogin).Methods("POST")
@@ -32,7 +52,11 @@ func main() {
 	r.HandleFunc("/login", server.NoAuthRoutes)
 	r.HandleFunc("/register", server.NoAuthRoutes)
 	r.HandleFunc("/register-success", server.NoAuthRoutes)
-	r.PathPrefix("/").Handler(server.AuthRoutes{})
+
+	authRoutes := server.AuthRoutes{
+		Config: routeConfig,
+	}
+	r.PathPrefix("/").Handler(authRoutes)
 
 	srv := &http.Server{
 		Handler:      r,

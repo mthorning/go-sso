@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/api/iterator"
 	"net/http"
+	"path/filepath"
 	"time"
 )
 
@@ -23,7 +24,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	password := r.PostFormValue("password")
 
 	var sendError = func(errorMessage string) {
-		ServeStaticPage(w, r, "error", map[string]string{
+		ServeStaticPage(w, r, filepath.Clean(r.URL.Path), map[string]string{
 			"email": email,
 			"error": errorMessage,
 		})
@@ -77,7 +78,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	name := r.PostFormValue("name")
 
 	var sendError = func(errorMessage string) {
-		ServeStaticPage(w, r, "error", map[string]string{
+		ServeStaticPage(w, r, filepath.Clean(r.URL.Path), map[string]string{
 			"name":  name,
 			"email": email,
 			"error": errorMessage,

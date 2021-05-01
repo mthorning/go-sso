@@ -15,9 +15,6 @@
     <div style="margin-top: 30px;display:flex;flex-direction:column;align-items:center">
         <input class="button-primary u-pull-right" type="submit" value="sign up">
     </div>
+    {{if .error}}<p style="color:red;text-align:center;">{{.error}}</p>{{else}}<p></p>{{end}}
 </form>
-<div style="margin-top: 30px;display:flex;flex-direction:column;align-items:center">
-    <p>Already have an account? <a href="/login">Sign in.</a></p>
-    {{if .error}}<p style="color:red;text-align:center;">{{.error}}</p>{{end}}
-</div>
 {{end}}
