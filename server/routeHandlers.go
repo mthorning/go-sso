@@ -10,29 +10,37 @@ import (
 	"path/filepath"
 )
 
-type RouteConfig = map[string]func(session *types.Session) (map[string]interface{}, error)
+type RouteConfig = map[string]func(session *types.SessionUser) (map[string]interface{}, error)
 
 type AuthRoutes struct {
-	Session *types.Session
-	Config  RouteConfig
+	SessionUser *types.SessionUser
+	Config      RouteConfig
 }
 
 func (a AuthRoutes) getData(path string) (map[string]interface{}, error) {
 	templateData := make(map[string]interface{})
-	if a.Session != nil {
-		templageData["session"] = a.Session
+	if a.SessionUser != nil {
+		templateData["userID"] = a.SessionUser.ID
 	}
 
 	getDataFunc, ok := a.Config[path]
 	if !ok {
 		return templateData, nil
 	}
-	// HERE, GET DATA AND THEN ADD IT TO TEMPLATEDATA ABOVE
-	return getDataFunc(a.Session)
+
+	data, err := getDataFunc(a.SessionUser)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range data {
+		templateData[k] = v
+	}
+
+	return templateData, nil
 }
 
 func (a AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s, err := session.GetSession(w, r)
+	sessionUser, err := session.GetSession(w, r)
 	if err != nil {
 		if _, ok := err.(session.NoSessionError); ok {
 			http.Redirect(w, r, "/login", http.StatusFound)
@@ -41,15 +49,16 @@ func (a AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		HTMLError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	a.Session = s
+	a.SessionUser = &sessionUser
 
 	file := filepath.Clean(r.URL.Path)
 	if file == "/" {
-		file = "index"
+		file = "/index"
 	}
 	templateData, err := a.getData(file)
 	if err != nil {
 		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	ServeStaticPage(w, r, file, templateData)

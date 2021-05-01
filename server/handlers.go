@@ -51,15 +51,15 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user types.DbUser
-	doc.DataTo(&user)
+	var dbUser types.DbUser
+	doc.DataTo(&dbUser)
 
-	if err = bcrypt.CompareHashAndPassword(user.Password, []byte(password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword(dbUser.Password, []byte(password)); err != nil {
 		sendError("Email or password incorrect")
 		return
 	}
 
-	if err := session.SetSession(w, r, &user); err != nil {
+	if err := session.SetSession(w, r, doc.Ref.ID); err != nil {
 		HTMLError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -127,8 +127,8 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 		Email    string
 		Password []byte
 		Name     string
-		Created  int64
-	}{email, pw, name, time.Now().Unix()})
+		Created  time.Time
+	}{email, pw, name, time.Now()})
 	if err != nil {
 		HTMLError(w, err.Error(), http.StatusBadRequest)
 		return

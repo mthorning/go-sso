@@ -22,15 +22,13 @@ func init() {
 	store = sessions.NewFilesystemStore("", []byte(conf.SessionKey))
 }
 
-func SetSession(w http.ResponseWriter, r *http.Request, user *types.DbUser) error {
+func SetSession(w http.ResponseWriter, r *http.Request, userID string) error {
 	s, err := store.Get(r, conf.SessionName)
 	if err != nil {
 		return err
 	}
 
-	s.Values["id"] = user.ID
-	s.Values["name"] = user.Name
-	s.Values["admin"] = user.Admin
+	s.Values["id"] = userID
 	err = s.Save(r, w)
 	if err != nil {
 		return err
@@ -43,25 +41,18 @@ type NoSessionError struct{}
 func (e NoSessionError) Error() string {
 	return "No session exists for this user"
 }
-func GetSession(w http.ResponseWriter, r *http.Request) (*types.Session, error) {
+func GetSession(w http.ResponseWriter, r *http.Request) (types.SessionUser, error) {
 	s, err := store.Get(r, conf.SessionName)
 	if err != nil {
-		return nil, err
+		return types.SessionUser{}, err
 	}
 	id, ok := s.Values["id"].(string)
 	if !ok {
-		return nil, NoSessionError{}
+		return types.SessionUser{}, NoSessionError{}
 	}
-
-	name := s.Values["name"].(string)
-	admin := s.Values["admin"].(bool)
-
-	user := types.Session{
-		ID:    id,
-		Name:  name,
-		Admin: admin,
-	}
-	return &user, nil
+	return types.SessionUser{
+		ID: id,
+	}, nil
 }
 
 func EndSession(w http.ResponseWriter, r *http.Request) error {

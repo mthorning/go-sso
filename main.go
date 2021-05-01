@@ -1,11 +1,9 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/mthorning/go-sso/config"
-	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/server"
 	"github.com/mthorning/go-sso/types"
 	"log"
@@ -24,14 +22,20 @@ func init() {
 }
 
 var routeConfig = server.RouteConfig{
-	"/edit-user": func(s *types.Session) (map[string]interface{}, error) {
-		dsnap, err := firestore.Users.Doc(s.ID).Get(context.Background())
+	"/index": func(s *types.SessionUser) (map[string]interface{}, error) {
+		user, err := s.GetUser()
 		if err != nil {
 			return nil, err
 		}
-		var user types.User
-		dsnap.DataTo(user)
-		fmt.Println(user)
+		return map[string]interface{}{
+			"name": user.Name,
+		}, nil
+	},
+	"/edit-user": func(s *types.SessionUser) (map[string]interface{}, error) {
+		user, err := s.GetUser()
+		if err != nil {
+			return nil, err
+		}
 		return map[string]interface{}{
 			"hidePassword": true,
 			"name":         user.Name,
