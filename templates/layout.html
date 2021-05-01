@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="static/main.css">
 </head>
 <body>
+    {{if .session}}
+    <p class="u-pull-right" style="margin:20px;">{{.session.Name}} <a href="logout">(sign out)</a>.</p>
+    {{end}}
     <div class="container" style="padding-top:90px;max-width:800px;">
         {{template "body" .}}
     </div>

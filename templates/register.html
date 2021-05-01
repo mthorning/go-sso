@@ -6,9 +6,9 @@
 <form action="/register" method="POST">
     <div class="row">
       <label for="name" >Name</label>
-      <input class="u-full-width" type="text" id="name" name="name" value="{{.Name}}">
+      <input class="u-full-width" type="text" id="name" name="name" value="{{.name}}">
       <label for="email" >Email</label>
-      <input class="u-full-width" type="email" id="email" name="email" value="{{.Email}}">
+      <input class="u-full-width" type="email" id="email" name="email" value="{{.email}}">
       <label for="password">Password</label>
       <input class="u-full-width" type="password" id="password" name="password">
     </div>
@@ -18,7 +18,7 @@
 </form>
 <div style="margin-top: 30px;display:flex;flex-direction:column;align-items:center">
     <p>Already have an account? <a href="/login">Sign in.</a></p>
-    {{if .Error}}<p style="color:red;text-align:center;">{{.Error}}</p>{{end}}
+    {{if .error}}<p style="color:red;text-align:center;">{{.error}}</p>{{end}}
 </div>
 {{end}}
 

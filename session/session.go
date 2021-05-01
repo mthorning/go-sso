@@ -43,7 +43,7 @@ type NoSessionError struct{}
 func (e NoSessionError) Error() string {
 	return "No session exists for this user"
 }
-func GetSession(w http.ResponseWriter, r *http.Request) (*types.User, error) {
+func GetSession(w http.ResponseWriter, r *http.Request) (*types.Session, error) {
 	session, err := store.Get(r, conf.SessionName)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func GetSession(w http.ResponseWriter, r *http.Request) (*types.User, error) {
 	name := session.Values["name"].(string)
 	admin := session.Values["admin"].(bool)
 
-	user := types.User{
+	user := types.Session{
 		ID:    id,
 		Name:  name,
 		Admin: admin,

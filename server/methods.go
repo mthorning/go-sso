@@ -30,7 +30,6 @@ func HTMLError(w http.ResponseWriter, errStr string, code int) {
 			Code  int
 			Error string
 		}{code, errStr}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

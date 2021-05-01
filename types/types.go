@@ -1,10 +1,16 @@
 package types
 
+type Session struct {
+	ID    string
+	Name  string
+	Admin bool
+}
+
 type User struct {
 	ID    string
 	Name  string
-	Email string
 	Admin bool
+	Email string
 }
 
 type DbUser struct {

@@ -1,5 +1,27 @@
 {{define "title"}}Welcome{{end}}
 
 {{define "body"}}
-<h1>Welcome {{.Name}}</h1>
+<div class="container">
+    <h3>Welcome, {{.session.Name}}.</h3>
+    <div class="row">
+        <div class="six columns">
+            <a class="button u-full-width">Edit Information</a> 
+        </div>
+        <div class="six columns">
+            <a class="button u-full-width">Change Password</a> 
+        </div>
+    </div>
+    {{if .session.Admin}}
+    <div class="row">
+        <div class="six columns">
+            <a class="button u-full-width">Manage Users</a> 
+        </div>
+        <div class="six columns">
+            <a class="button u-full-width">Add User</a> 
+        </div>
+    </div>
+    {{end}}
+</div>
+
 {{end}}
+

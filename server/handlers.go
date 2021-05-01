@@ -3,71 +3,15 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/jwt"
 	"github.com/mthorning/go-sso/session"
 	"github.com/mthorning/go-sso/types"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/api/iterator"
-	"html/template"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 )
-
-type AuthRoutes struct{}
-
-func (c AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	user, err := session.GetSession(w, r)
-	if _, ok := err.(session.NoSessionError); ok {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	ServeStaticPage(w, r, user)
-}
-
-func NoAuthRoutes(w http.ResponseWriter, r *http.Request) {
-	ServeStaticPage(w, r, nil)
-}
-
-func ServeStaticPage(w http.ResponseWriter, r *http.Request, templateData interface{}) {
-	lp := filepath.Join("templates", "layout.html")
-
-	file := filepath.Clean(r.URL.Path)
-	fp := filepath.Join("templates", fmt.Sprintf("%s.html", file))
-
-	info, err := os.Stat(fp)
-	if err != nil {
-		if os.IsNotExist(err) {
-			HTMLError(w, "Page Not Found", http.StatusNotFound)
-			return
-		} else {
-			HTMLError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-	if info.IsDir() {
-		HTMLError(w, "Page Not Found", http.StatusNotFound)
-		return
-	}
-
-	tmpl, err := template.ParseFiles(lp, fp)
-	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "layout", templateData); err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
 
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
@@ -79,10 +23,10 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	password := r.PostFormValue("password")
 
 	var sendError = func(errorMessage string) {
-		ServeStaticPage(w, r, struct {
-			Email string
-			Error string
-		}{email, errorMessage})
+		ServeStaticPage(w, r, map[string]string{
+			"email": email,
+			"error": errorMessage,
+		})
 	}
 	if email == "" {
 		sendError("Please enter an email address")
@@ -132,11 +76,11 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	name := r.PostFormValue("name")
 
 	var sendError = func(errorMessage string) {
-		ServeStaticPage(w, r, struct {
-			Name  string
-			Email string
-			Error string
-		}{name, email, errorMessage})
+		ServeStaticPage(w, r, map[string]string{
+			"name":  name,
+			"email": email,
+			"error": errorMessage,
+		})
 	}
 	if name == "" {
 		sendError("Please provide a name")
