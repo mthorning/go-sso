@@ -32,14 +32,10 @@ var routeConfig = server.RouteConfig{
 	},
 	"/edit-user": func(s *types.SessionUser) (interface{}, error) {
 		d := struct {
-			Action       string
-			Method       string
-			SubmitText   string
-			HidePassword bool
-			Name         string
-			Email        string
-			Error        string
-		}{Action: "/edit", Method: "PATCH", SubmitText: "Update", HidePassword: true}
+			Name  string
+			Email string
+			Error string
+		}{}
 		err := s.GetUser(&d)
 		return d, err
 	},
@@ -51,7 +47,7 @@ func main() {
 	r.HandleFunc("/register", server.HandleRegister).Methods("POST")
 	r.HandleFunc("/authn", server.HandleAuthn).Methods("POST")
 	r.HandleFunc("/logout", server.HandleLogout).Methods("POST")
-	r.HandleFunc("/edit", server.HandleEdit).Methods("PATCH")
+	r.HandleFunc("/edit", server.HandleEdit).Methods("POST")
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 

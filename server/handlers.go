@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/jwt"
 	"github.com/mthorning/go-sso/session"
@@ -26,8 +25,8 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	var sendError = func(errorMessage string) {
 		ServeStaticPage(w, r, filepath.Clean(r.URL.Path), map[string]string{
-			"email": email,
-			"error": errorMessage,
+			"Email": email,
+			"Error": errorMessage,
 		})
 	}
 	if email == "" {
@@ -169,7 +168,6 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleEdit(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Hello")
 	sessionUser, err := session.GetSession(w, r)
 	if err != nil {
 		if _, ok := err.(session.NoSessionError); ok {

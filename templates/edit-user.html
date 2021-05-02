@@ -2,7 +2,12 @@
 
 {{define "body"}}
 <h2>Edit User: {{.Name}}</h2>
-{{template "userForm" .}}
+<form action="/edit" method="POST">
+    {{template "userDetailFields" .}}
+    {{template "submitButton" "Sign up"}}
+    {{template "cancelButton" "/"}}
+    {{template "inlineError" .}}
+</form>
 {{end}}
 
 

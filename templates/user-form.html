@@ -1,5 +1,4 @@
-{{define "userForm"}}
-<form action="{{or .Action "/register"}}" method="{{or .Method "POST"}}">
+{{define "userDetails"}}
     <div class="row">
       <label for="name" >Name</label>
       <input class="u-full-width" type="text" id="name" name="name" value="{{.Name}}">
@@ -15,6 +14,4 @@
     <div style="margin-top: 30px;">
         <input class="button-primary u-pull-right" type="submit" value="{{or .SubmitText "Sign up"}}">
     </div>
-    {{if .Error}}<p style="color:red;text-align:center;">{{.Error}}</p>{{else}}<p></p>{{end}}
-</form>
 {{end}}

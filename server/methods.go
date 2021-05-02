@@ -28,8 +28,8 @@ func HTMLError(w http.ResponseWriter, errStr string, code int) {
 
 	if err := tmpl.ExecuteTemplate(w, "layout",
 		map[string]string{
-			"code":  strconv.Itoa(code),
-			"error": errStr,
+			"Code":  strconv.Itoa(code),
+			"Error": errStr,
 		}); err != nil {
 		return
 	}

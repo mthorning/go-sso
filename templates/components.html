@@ -1,0 +1,25 @@
+{{define "userDetailFields"}}
+<div class="row">
+  <label for="name">Name</label>
+  <input class="u-full-width" type="text" id="name" name="name" value="{{.Name}}">
+  <label for="email" >Email</label>
+  <input class="u-full-width" type="email" id="email" name="email" value="{{.Email}}">
+</div>
+{{end}}
+
+{{define "passwordField"}}
+<label for="{{index . 0}}">{{index . 1}}</label>
+<input class="u-full-width" type="password" id="{{index . 0}}" name="{{index . 0}}">
+{{end}}
+
+{{define "inlineError"}}
+{{if .Error}}<p style="color:red;text-align:center;">{{.Error}}</p>{{else}}<p></p>{{end}}
+{{end}}
+
+{{define "submitButton"}}
+    <input style="margin:30px 0 0 0;" class="button-primary u-pull-right" type="submit" value="{{.}}">
+{{end}}
+
+{{define "cancelButton"}}
+<a style="margin:30px 8px 0 0;" class="button u-pull-right" href="{{.}}">Cancel</a>
+{{end}}
