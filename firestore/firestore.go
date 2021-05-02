@@ -13,6 +13,8 @@ type Config struct {
 	GoogleApplicationCredentials string `required:"true" split_words:"true"`
 }
 
+type Update = firestore.Update
+
 var Users *firestore.CollectionRef
 
 func init() {

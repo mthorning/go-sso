@@ -1,20 +1,20 @@
 {{define "userForm"}}
-<form action="/register" method="POST">
+<form action="{{or .Action "/register"}}" method="{{or .Method "POST"}}">
     <div class="row">
       <label for="name" >Name</label>
-      <input class="u-full-width" type="text" id="name" name="name" value="{{.name}}">
+      <input class="u-full-width" type="text" id="name" name="name" value="{{.Name}}">
       <label for="email" >Email</label>
-      <input class="u-full-width" type="email" id="email" name="email" value="{{.email}}">
-      {{if not .hidePassword}}
+      <input class="u-full-width" type="email" id="email" name="email" value="{{.Email}}">
+      {{if not .HidePassword}}
         <label for="password">Password</label>
         <input class="u-full-width" type="password" id="password" name="password">
         <label for="passwordAgain">Re-enter password</label>
         <input class="u-full-width" type="password" id="passwordAgain" name="passwordAgain">
       {{end}}
     </div>
-    <div style="margin-top: 30px;display:flex;flex-direction:column;align-items:center">
-        <input class="button-primary u-pull-right" type="submit" value="sign up">
+    <div style="margin-top: 30px;">
+        <input class="button-primary u-pull-right" type="submit" value="{{or .SubmitText "Sign up"}}">
     </div>
-    {{if .error}}<p style="color:red;text-align:center;">{{.error}}</p>{{else}}<p></p>{{end}}
+    {{if .Error}}<p style="color:red;text-align:center;">{{.Error}}</p>{{else}}<p></p>{{end}}
 </form>
 {{end}}

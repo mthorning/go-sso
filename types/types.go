@@ -25,13 +25,11 @@ type SessionUser struct {
 	ID string
 }
 
-func (s *SessionUser) GetUser() (User, error) {
+func (s *SessionUser) GetUser(u interface{}) error {
 	dsnap, err := firestore.Users.Doc(s.ID).Get(context.Background())
 	if err != nil {
-		return User{}, err
+		return err
 	}
-	var user User
-	dsnap.DataTo(&user)
-
-	return user, nil
+	dsnap.DataTo(u)
+	return nil
 }

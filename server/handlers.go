@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/jwt"
 	"github.com/mthorning/go-sso/session"
@@ -79,9 +80,9 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	var sendError = func(errorMessage string) {
 		ServeStaticPage(w, r, filepath.Clean(r.URL.Path), map[string]string{
-			"name":  name,
-			"email": email,
-			"error": errorMessage,
+			"Name":  name,
+			"Email": email,
+			"Error": errorMessage,
 		})
 	}
 	if name == "" {
@@ -137,6 +138,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleAuthn(w http.ResponseWriter, r *http.Request) {
+	// OLD, NEEDS FIXING
 	var rBody map[string]string
 	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		JSONError(w, "Error reading from request body", http.StatusInternalServerError)
@@ -163,5 +165,43 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		HTMLError(w, err.Error(), http.StatusInternalServerError)
 	}
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func HandleEdit(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Hello")
+	sessionUser, err := session.GetSession(w, r)
+	if err != nil {
+		if _, ok := err.(session.NoSessionError); ok {
+			HTMLError(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		JSONError(w, "Error reading form", http.StatusBadRequest)
+		return
+	}
+
+	email := r.PostFormValue("email")
+	name := r.PostFormValue("name")
+
+	_, err = firestore.Users.Doc(sessionUser.ID).Update(context.Background(), []firestore.Update{
+		{
+			Path:  "Name",
+			Value: name,
+		},
+		{
+			Path:  "Email",
+			Value: email,
+		},
+	})
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	http.Redirect(w, r, "/", http.StatusFound)
 }

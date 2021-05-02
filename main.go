@@ -22,25 +22,26 @@ func init() {
 }
 
 var routeConfig = server.RouteConfig{
-	"/index": func(s *types.SessionUser) (map[string]interface{}, error) {
-		user, err := s.GetUser()
-		if err != nil {
-			return nil, err
-		}
-		return map[string]interface{}{
-			"name": user.Name,
-		}, nil
+	"/index": func(s *types.SessionUser) (interface{}, error) {
+		d := struct {
+			Admin bool
+			Name  string
+		}{}
+		err := s.GetUser(&d)
+		return d, err
 	},
-	"/edit-user": func(s *types.SessionUser) (map[string]interface{}, error) {
-		user, err := s.GetUser()
-		if err != nil {
-			return nil, err
-		}
-		return map[string]interface{}{
-			"hidePassword": true,
-			"name":         user.Name,
-			"email":        user.Email,
-		}, nil
+	"/edit-user": func(s *types.SessionUser) (interface{}, error) {
+		d := struct {
+			Action       string
+			Method       string
+			SubmitText   string
+			HidePassword bool
+			Name         string
+			Email        string
+			Error        string
+		}{Action: "/edit", Method: "PATCH", SubmitText: "Update", HidePassword: true}
+		err := s.GetUser(&d)
+		return d, err
 	},
 }
 
@@ -50,6 +51,7 @@ func main() {
 	r.HandleFunc("/register", server.HandleRegister).Methods("POST")
 	r.HandleFunc("/authn", server.HandleAuthn).Methods("POST")
 	r.HandleFunc("/logout", server.HandleLogout).Methods("POST")
+	r.HandleFunc("/edit", server.HandleEdit).Methods("PATCH")
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 

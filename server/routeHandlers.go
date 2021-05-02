@@ -10,33 +10,20 @@ import (
 	"path/filepath"
 )
 
-type RouteConfig = map[string]func(session *types.SessionUser) (map[string]interface{}, error)
+type RouteConfig = map[string]interface{}
 
 type AuthRoutes struct {
 	SessionUser *types.SessionUser
 	Config      RouteConfig
 }
 
-func (a AuthRoutes) getData(path string) (map[string]interface{}, error) {
-	templateData := make(map[string]interface{})
-	if a.SessionUser != nil {
-		templateData["userID"] = a.SessionUser.ID
+func (a AuthRoutes) getData(path string) (interface{}, error) {
+	switch c := a.Config[path].(type) {
+	case func(s *types.SessionUser) (interface{}, error):
+		return c(a.SessionUser)
+	default:
+		return c, nil
 	}
-
-	getDataFunc, ok := a.Config[path]
-	if !ok {
-		return templateData, nil
-	}
-
-	data, err := getDataFunc(a.SessionUser)
-	if err != nil {
-		return nil, err
-	}
-	for k, v := range data {
-		templateData[k] = v
-	}
-
-	return templateData, nil
 }
 
 func (a AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
