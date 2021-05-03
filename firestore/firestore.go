@@ -15,7 +15,10 @@ type Config struct {
 
 type Update = firestore.Update
 
-var Users *firestore.CollectionRef
+var (
+	Users *firestore.CollectionRef
+	Asc   = firestore.Asc
+)
 
 func init() {
 	var conf Config

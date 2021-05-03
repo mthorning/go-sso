@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/mthorning/go-sso/config"
+	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/server"
 	"github.com/mthorning/go-sso/types"
 	"log"
@@ -30,7 +32,7 @@ var routeConfig = server.RouteConfig{
 		err := s.GetUser(&d)
 		return d, err
 	},
-	"/edit-user": func(s *types.SessionUser) (interface{}, error) {
+	"/edit": func(s *types.SessionUser) (interface{}, error) {
 		d := struct {
 			Name  string
 			Email string
@@ -38,6 +40,40 @@ var routeConfig = server.RouteConfig{
 		}{}
 		err := s.GetUser(&d)
 		return d, err
+	},
+	"/chpwd": func(s *types.SessionUser) (interface{}, error) {
+		d := struct {
+			Name  string
+			Error string
+		}{}
+		err := s.GetUser(&d)
+		return d, err
+	},
+	"/manage": func(s *types.SessionUser) (interface{}, error) {
+		d := struct {
+			Email string
+		}{}
+		err := s.GetUser(&d)
+		if err != nil {
+			return nil, err
+		}
+
+		query := firestore.Users.Where("email", "!=", d.Email).OrderBy("Name", firestore.Asc).Limit(10)
+		docs, err := query.Documents(context.Background()).GetAll()
+		if err != nil {
+			return nil, err
+		}
+
+		var users []types.User
+		for _, doc := range docs {
+			var user types.User
+			err := doc.DataTo(&user)
+			if err != nil {
+				return nil, err
+			}
+			users = append(users, user)
+		}
+		return users, nil
 	},
 }
 
@@ -48,6 +84,7 @@ func main() {
 	r.HandleFunc("/authn", server.HandleAuthn).Methods("POST")
 	r.HandleFunc("/logout", server.HandleLogout).Methods("POST")
 	r.HandleFunc("/edit", server.HandleEdit).Methods("POST")
+	r.HandleFunc("/chpwd", server.HandleChpwd).Methods("POST")
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 

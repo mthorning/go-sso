@@ -6,10 +6,9 @@
     <title>{{template "title"}}</title>
     <link rel="stylesheet" href="static/normalize.css">
     <link rel="stylesheet" href="static/skeleton.css">
-    <link rel="stylesheet" href="static/main.css">
 </head>
 <body>
-    {{if .}}
+    {{if isLoggedIn}}
     <form action="/logout" method="POST">
         <p class="u-pull-right" style="margin:20px;">
             <button type="submit">sign out</button>

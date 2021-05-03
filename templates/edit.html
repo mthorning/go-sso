@@ -1,11 +1,13 @@
 {{define "title"}}Edit User{{end}}
 
 {{define "body"}}
-<h2>Edit User: {{.Name}}</h2>
+<h2>Edit User</h2>
 <form action="/edit" method="POST">
     {{template "userDetailFields" .}}
-    {{template "submitButton" "Sign up"}}
-    {{template "cancelButton" "/"}}
+    <div class="row" style="margin:20px 0;">
+        {{template "submitButton" "Update"}}
+        {{template "cancelButton" "/"}}
+    </div>
     {{template "inlineError" .}}
 </form>
 {{end}}

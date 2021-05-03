@@ -2,12 +2,14 @@
 
 {{define "body"}}
 <h2>Change Password for {{.Name}}</h2>
-<form action="/edit" method="POST">
+<form action="/chpwd" method="POST">
     {{template "passwordField" many "currentPassword" "Current Password"}}
     {{template "passwordField" many "password" "New Password"}}
     {{template "passwordField" many "passwordAgain" "Re-enter Password"}}
-    {{template "submitButton" "Change Password"}}
-    {{template "cancelButton" "/"}}
+    <div class="row" style="margin:20px 0;">
+        {{template "submitButton" "Change Password"}}
+        {{template "cancelButton" "/"}}
+    </div>
     {{template "inlineError" .}}
 </form>
 {{end}}

@@ -68,7 +68,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		JSONError(w, "Error reading form", http.StatusBadRequest)
+		HTMLError(w, "Error reading form", http.StatusBadRequest)
 		return
 	}
 
@@ -101,18 +101,12 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := firestore.Users.Where("Email", "==", email)
-	iter := query.Documents(context.Background())
-	defer iter.Stop()
-	for {
-		_, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			HTMLError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	unique, err := checkEmailUnique(w, email, "")
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !unique {
 		sendError("Email address already taken")
 		return
 	}
@@ -168,23 +162,44 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleEdit(w http.ResponseWriter, r *http.Request) {
-	sessionUser, err := session.GetSession(w, r)
+	sessionUser, err := getSessionUser(w, r)
 	if err != nil {
-		if _, ok := err.(session.NoSessionError); ok {
-			HTMLError(w, err.Error(), http.StatusForbidden)
-			return
-		}
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	if err := r.ParseForm(); err != nil {
-		JSONError(w, "Error reading form", http.StatusBadRequest)
+		HTMLError(w, "Error reading form", http.StatusBadRequest)
 		return
 	}
 
 	email := r.PostFormValue("email")
 	name := r.PostFormValue("name")
+
+	var sendError = func(errorMessage string) {
+		ServeStaticPage(w, r, filepath.Clean(r.URL.Path), map[string]string{
+			"Email": email,
+			"Name":  name,
+			"Error": errorMessage,
+		})
+	}
+
+	if email == "" {
+		sendError("Email can't be blank")
+		return
+	}
+	if name == "" {
+		sendError("Name can't be blank")
+		return
+	}
+
+	unique, err := checkEmailUnique(w, email, sessionUser.ID)
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !unique {
+		sendError("Email address already taken")
+		return
+	}
 
 	_, err = firestore.Users.Doc(sessionUser.ID).Update(context.Background(), []firestore.Update{
 		{
@@ -194,6 +209,79 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 		{
 			Path:  "Email",
 			Value: email,
+		},
+	})
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func HandleChpwd(w http.ResponseWriter, r *http.Request) {
+	sessionUser, err := getSessionUser(w, r)
+	if err != nil {
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		HTMLError(w, "Error reading form", http.StatusBadRequest)
+		return
+	}
+
+	currentPassword := r.PostFormValue("currentPassword")
+	password := r.PostFormValue("password")
+	passwordAgain := r.PostFormValue("passwordAgain")
+
+	var sendError = func(errorMessage string) {
+		ServeStaticPage(w, r, filepath.Clean(r.URL.Path), map[string]string{
+			"Error": errorMessage,
+		})
+	}
+	if currentPassword == "" {
+		sendError("Please enter your current password")
+		return
+	}
+	if password == "" {
+		sendError("Please enter a new password")
+		return
+	}
+	if password != passwordAgain {
+		sendError("Passwords do not match")
+		return
+	}
+
+	ref := firestore.Users.Doc(sessionUser.ID)
+	dsnap, err := ref.Get(context.Background())
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	dbUser := struct {
+		Password []byte
+	}{}
+	err = dsnap.DataTo(&dbUser)
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword(dbUser.Password, []byte(currentPassword)); err != nil {
+		sendError("Incorrect password")
+		return
+	}
+
+	newPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	_, err = ref.Update(context.Background(), []firestore.Update{
+		{
+			Path:  "Password",
+			Value: newPassword,
 		},
 	})
 	if err != nil {

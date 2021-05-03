@@ -8,11 +8,13 @@
     {{template "passwordField" many "password" "Password"}}
     {{template "passwordField" many "passwordAgain" "Re-enter Password"}}
 
-    {{template "submitButton" "Sign up"}}
-    {{template "cancelButton" "/"}}
+    <div class="row" style="margin:20px 0;">
+        {{template "submitButton" "Sign up"}}
+        {{template "cancelButton" "/"}}
+    </div>
     {{template "inlineError" .}}
 </form>
-<div style="margin-top: 30px;" class="u-cf">
+<div style="margin-top: 20px;" class="u-cf">
     <p>Already have an account? <a href="/login">Sign in.</a></p>
 </div>
 {{end}}

@@ -1,0 +1,25 @@
+{{define "title"}}Manage Users{{end}}
+
+{{define "body"}}
+<h2>Manage Users</h2>
+<table class="u-full-width">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Admin</th>
+    </tr>
+  </thead>
+  <tbody>
+      {{range .}}
+    <tr>
+        <td>{{.Name}}</td>
+        <td>{{.Email}}</td>
+        <td>{{yesNo .Admin}}</td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{end}}
+
+

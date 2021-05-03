@@ -1,9 +1,14 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/jwt"
+	"github.com/mthorning/go-sso/session"
 	"github.com/mthorning/go-sso/types"
+	"google.golang.org/api/iterator"
 	"html/template"
 	"net/http"
 	"path/filepath"
@@ -56,4 +61,32 @@ func getJWT(w http.ResponseWriter, user types.User) {
 	}
 
 	JSONResponse(w, json)
+}
+
+func getSessionUser(w http.ResponseWriter, r *http.Request) (types.SessionUser, error) {
+	sessionUser, err := session.GetSession(w, r)
+	if err != nil {
+		if _, ok := err.(session.NoSessionError); ok {
+			HTMLError(w, err.Error(), http.StatusForbidden)
+		}
+		return types.SessionUser{}, errors.New("Error getting session user")
+	}
+	return sessionUser, nil
+
+}
+
+func checkEmailUnique(w http.ResponseWriter, email, userID string) (bool, error) {
+	query := firestore.Users.Where("Email", "==", email)
+	iter := query.Documents(context.Background())
+	defer iter.Stop()
+	for {
+		dsnap, err := iter.Next()
+		if err == iterator.Done {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		return dsnap.Ref.ID == userID, nil
+	}
 }

@@ -81,6 +81,16 @@ func ServeStaticPage(w http.ResponseWriter, r *http.Request, file string, templa
 		"many": func(s ...string) []string {
 			return s
 		},
+		"isLoggedIn": func(_ ...string) bool {
+			_, err := session.GetSession(w, r)
+			return err == nil
+		},
+		"yesNo": func(bool) string {
+			if true {
+				return "Yes"
+			}
+			return "No"
+		},
 	}
 
 	tmpl, err := template.New("page").Funcs(funcMap).ParseFiles(lp, up, fp)

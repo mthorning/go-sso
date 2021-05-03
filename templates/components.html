@@ -13,13 +13,15 @@
 {{end}}
 
 {{define "inlineError"}}
-{{if .Error}}<p style="color:red;text-align:center;">{{.Error}}</p>{{else}}<p></p>{{end}}
+<div class="row">
+{{if .Error}}<p style="color:red;" class="u-pull-right">{{.Error}}</p>{{else}}<p></p>{{end}}
+</div>
 {{end}}
 
 {{define "submitButton"}}
-    <input style="margin:30px 0 0 0;" class="button-primary u-pull-right" type="submit" value="{{.}}">
+    <input class="button-primary u-pull-right" type="submit" value="{{.}}">
 {{end}}
 
 {{define "cancelButton"}}
-<a style="margin:30px 8px 0 0;" class="button u-pull-right" href="{{.}}">Cancel</a>
+<a style="margin-right:8px;" class="button u-pull-right" href="{{.}}">Cancel</a>
 {{end}}
