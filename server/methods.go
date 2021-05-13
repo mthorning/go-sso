@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/jwt"
 	"github.com/mthorning/go-sso/session"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"time"
 )
 
 func JSONError(w http.ResponseWriter, err string, code int) {
@@ -21,13 +23,13 @@ func JSONError(w http.ResponseWriter, err string, code int) {
 	json.NewEncoder(w).Encode(map[string]string{"message": err})
 }
 
-func HTMLError(w http.ResponseWriter, errStr string, code int) {
+func HTMLError(w http.ResponseWriter, r *http.Request, errStr string, code int) {
 	lp := filepath.Join("templates", "layout.html")
 	ep := filepath.Join("templates", "error.html")
 
-	tmpl, err := template.ParseFiles(lp, ep)
+	tmpl, err := makeTemplate(w, r, lp, ep)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error in HTMLError ParseFiles: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
@@ -36,6 +38,7 @@ func HTMLError(w http.ResponseWriter, errStr string, code int) {
 			"Code":  strconv.Itoa(code),
 			"Error": errStr,
 		}); err != nil {
+		http.Error(w, fmt.Sprintf("Error in HTMLError ExecuteTemplate: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 }
@@ -67,7 +70,7 @@ func getSessionUser(w http.ResponseWriter, r *http.Request) (types.SessionUser, 
 	sessionUser, err := session.GetSession(w, r)
 	if err != nil {
 		if _, ok := err.(session.NoSessionError); ok {
-			HTMLError(w, err.Error(), http.StatusForbidden)
+			HTMLError(w, r, err.Error(), http.StatusForbidden)
 		}
 		return types.SessionUser{}, errors.New("Error getting session user")
 	}
@@ -89,4 +92,28 @@ func checkEmailUnique(w http.ResponseWriter, email, userID string) (bool, error)
 		}
 		return dsnap.Ref.ID == userID, nil
 	}
+}
+
+func makeTemplate(w http.ResponseWriter, r *http.Request, files ...string) (*template.Template, error) {
+
+	funcMap := template.FuncMap{
+		"many": func(s ...string) []string {
+			return s
+		},
+		"isLoggedIn": func(_ ...string) bool {
+			_, err := session.GetSession(w, r)
+			return err == nil
+		},
+		"yesNo": func(x bool) string {
+			if x {
+				return "Yes"
+			}
+			return "No"
+		},
+		"dateTime": func(t time.Time) string {
+			return t.Format("2006-01-02 15:04:05")
+		},
+	}
+
+	return template.New("page").Funcs(funcMap).ParseFiles(files...)
 }

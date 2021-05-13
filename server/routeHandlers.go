@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mthorning/go-sso/session"
 	"github.com/mthorning/go-sso/types"
-	"html/template"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -33,7 +32,7 @@ func (a AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/login", http.StatusFound)
 			return
 		}
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	a.SessionUser = &sessionUser
@@ -44,7 +43,8 @@ func (a AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	templateData, err := a.getData(file)
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		fmt.Println(err.Error())
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -65,42 +65,26 @@ func ServeStaticPage(w http.ResponseWriter, r *http.Request, file string, templa
 	info, err := os.Stat(fp)
 	if err != nil {
 		if os.IsNotExist(err) {
-			HTMLError(w, "Page Not Found", http.StatusNotFound)
+			fmt.Println("hello")
+			HTMLError(w, r, "Page Not Found", http.StatusNotFound)
 			return
 		} else {
-			HTMLError(w, err.Error(), http.StatusInternalServerError)
+			HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 	if info.IsDir() {
-		HTMLError(w, "Page Not Found", http.StatusNotFound)
+		HTMLError(w, r, "Page Not Found", http.StatusNotFound)
 		return
 	}
 
-	funcMap := template.FuncMap{
-		"many": func(s ...string) []string {
-			return s
-		},
-		"isLoggedIn": func(_ ...string) bool {
-			_, err := session.GetSession(w, r)
-			return err == nil
-		},
-		"yesNo": func(bool) string {
-			if true {
-				return "Yes"
-			}
-			return "No"
-		},
-	}
-
-	tmpl, err := template.New("page").Funcs(funcMap).ParseFiles(lp, up, fp)
+	tmpl, err := makeTemplate(w, r, lp, up, fp)
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
-		return
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "layout", templateData); err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

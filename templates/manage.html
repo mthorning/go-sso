@@ -8,18 +8,21 @@
       <th>Name</th>
       <th>Email</th>
       <th>Admin</th>
+      <th>Created</th>
     </tr>
   </thead>
   <tbody>
       {{range .}}
     <tr>
-        <td>{{.Name}}</td>
+      <th><a href="/edit/uuid">{{.Name}}</a></th>
         <td>{{.Email}}</td>
         <td>{{yesNo .Admin}}</td>
+        <td>{{dateTime .Created}}</td>
     </tr>
     {{end}}
   </tbody>
 </table>
+{{template "cancelButton" "/"}}
 {{end}}
 
 

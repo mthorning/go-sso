@@ -58,7 +58,7 @@ var routeConfig = server.RouteConfig{
 			return nil, err
 		}
 
-		query := firestore.Users.Where("email", "!=", d.Email).OrderBy("Name", firestore.Asc).Limit(10)
+		query := firestore.Users.Where("Email", "!=", d.Email)
 		docs, err := query.Documents(context.Background()).GetAll()
 		if err != nil {
 			return nil, err
@@ -71,6 +71,7 @@ var routeConfig = server.RouteConfig{
 			if err != nil {
 				return nil, err
 			}
+			user.ID = doc.Ref.ID
 			users = append(users, user)
 		}
 		return users, nil

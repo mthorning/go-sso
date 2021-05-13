@@ -7,6 +7,7 @@ import (
 )
 
 type User struct {
+	ID      string
 	Name    string
 	Admin   bool
 	Email   string

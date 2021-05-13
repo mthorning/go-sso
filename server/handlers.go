@@ -16,7 +16,7 @@ import (
 
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		HTMLError(w, "Error reading form", http.StatusBadRequest)
+		HTMLError(w, r, "Error reading form", http.StatusBadRequest)
 		return
 	}
 
@@ -47,7 +47,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -60,7 +60,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := session.SetSession(w, r, doc.Ref.ID); err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/", http.StatusFound)
@@ -68,7 +68,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		HTMLError(w, "Error reading form", http.StatusBadRequest)
+		HTMLError(w, r, "Error reading form", http.StatusBadRequest)
 		return
 	}
 
@@ -103,7 +103,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	unique, err := checkEmailUnique(w, email, "")
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !unique {
@@ -113,7 +113,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	pw, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -124,7 +124,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 		Created  time.Time
 	}{email, pw, name, time.Now()})
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusBadRequest)
+		HTMLError(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/register-success", http.StatusFound)
@@ -156,7 +156,7 @@ func HandleAuthn(w http.ResponseWriter, r *http.Request) {
 func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	err := session.EndSession(w, r)
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 	}
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -167,7 +167,7 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		HTMLError(w, "Error reading form", http.StatusBadRequest)
+		HTMLError(w, r, "Error reading form", http.StatusBadRequest)
 		return
 	}
 
@@ -193,7 +193,7 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 
 	unique, err := checkEmailUnique(w, email, sessionUser.ID)
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !unique {
@@ -212,7 +212,7 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -226,7 +226,7 @@ func HandleChpwd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseForm(); err != nil {
-		HTMLError(w, "Error reading form", http.StatusBadRequest)
+		HTMLError(w, r, "Error reading form", http.StatusBadRequest)
 		return
 	}
 
@@ -255,7 +255,7 @@ func HandleChpwd(w http.ResponseWriter, r *http.Request) {
 	ref := firestore.Users.Doc(sessionUser.ID)
 	dsnap, err := ref.Get(context.Background())
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -264,7 +264,7 @@ func HandleChpwd(w http.ResponseWriter, r *http.Request) {
 	}{}
 	err = dsnap.DataTo(&dbUser)
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -275,7 +275,7 @@ func HandleChpwd(w http.ResponseWriter, r *http.Request) {
 
 	newPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	_, err = ref.Update(context.Background(), []firestore.Update{
@@ -285,7 +285,7 @@ func HandleChpwd(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
-		HTMLError(w, err.Error(), http.StatusInternalServerError)
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
