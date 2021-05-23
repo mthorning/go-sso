@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
 type RouteConfig = map[string]interface{}
@@ -17,12 +18,23 @@ type AuthRoutes struct {
 }
 
 func (a AuthRoutes) getData(path string) (interface{}, error) {
-	switch c := a.Config[path].(type) {
-	case func(s *types.SessionUser) (interface{}, error):
-		return c(a.SessionUser)
-	default:
-		return c, nil
+	for k, v := range a.Config {
+		re, err := regexp.Compile(k)
+		if err != nil {
+			return nil, err
+		}
+		if re.MatchString(path) {
+			switch c := v.(type) {
+			case func(s *types.SessionUser) (interface{}, error):
+				return c(a.SessionUser)
+			case func(p string, s *types.SessionUser) (interface{}, error):
+				return c(path, a.SessionUser)
+			default:
+				return c, nil
+			}
+		}
 	}
+	return nil, nil
 }
 
 func (a AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +55,6 @@ func (a AuthRoutes) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	templateData, err := a.getData(file)
 	if err != nil {
-		fmt.Println(err.Error())
 		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -56,31 +67,47 @@ func NoAuthRoutes(w http.ResponseWriter, r *http.Request) {
 	ServeStaticPage(w, r, file, nil)
 }
 
+func getFilePath(path string) (string, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			re, err := regexp.Compile(`.*\/\[slug\]\.html$`)
+			if err != nil {
+				return "", err
+			}
+			if re.MatchString(path) {
+				return "", fmt.Errorf("page not found")
+			}
+			re, err = regexp.Compile(`(.*\/).*(\.html)$`)
+			if err != nil {
+				return "", err
+			}
+			return getFilePath(re.ReplaceAllString(path, "$1[slug]$2"))
+		} else {
+			return "", err
+		}
+	}
+	if info.IsDir() {
+		fmt.Println("isDir")
+		return "", fmt.Errorf("page not found")
+	}
+	return path, nil
+}
+
 func ServeStaticPage(w http.ResponseWriter, r *http.Request, file string, templateData interface{}) {
 	lp := filepath.Join("templates", "layout.html")
 	up := filepath.Join("templates", "components.html")
 
-	fp := filepath.Join("templates", fmt.Sprintf("%s.html", file))
-
-	info, err := os.Stat(fp)
+	fp, err := getFilePath(filepath.Join("templates", fmt.Sprintf("%s.html", file)))
 	if err != nil {
-		if os.IsNotExist(err) {
-			fmt.Println("hello")
-			HTMLError(w, r, "Page Not Found", http.StatusNotFound)
-			return
-		} else {
-			HTMLError(w, r, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-	if info.IsDir() {
-		HTMLError(w, r, "Page Not Found", http.StatusNotFound)
+		HTMLError(w, r, err.Error(), http.StatusNotFound)
 		return
 	}
 
 	tmpl, err := makeTemplate(w, r, lp, up, fp)
 	if err != nil {
 		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "layout", templateData); err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/mthorning/go-sso/types"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -26,19 +27,32 @@ func init() {
 var routeConfig = server.RouteConfig{
 	"/index": func(s *types.SessionUser) (interface{}, error) {
 		d := struct {
+			ID    string
 			Admin bool
 			Name  string
 		}{}
 		err := s.GetUser(&d)
+		d.ID = s.ID
 		return d, err
 	},
-	"/edit": func(s *types.SessionUser) (interface{}, error) {
+	"/edit/.*$": func(path string, s *types.SessionUser) (interface{}, error) {
+		parts := strings.Split(path, "/")
+		userID := parts[len(parts)-1]
+
 		d := struct {
 			Name  string
 			Email string
 			Error string
 		}{}
-		err := s.GetUser(&d)
+
+		docsnap, err := firestore.Users.Doc(userID).Get(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		err = docsnap.DataTo(&d)
+		if err != nil {
+			return nil, err
+		}
 		return d, err
 	},
 	"/chpwd": func(s *types.SessionUser) (interface{}, error) {

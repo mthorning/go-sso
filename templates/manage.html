@@ -14,7 +14,7 @@
   <tbody>
       {{range .}}
     <tr>
-      <th><a href="/edit/uuid">{{.Name}}</a></th>
+      <th><a href="/edit/{{.ID}}">{{.Name}}</a></th>
         <td>{{.Email}}</td>
         <td>{{yesNo .Admin}}</td>
         <td>{{dateTime .Created}}</td>
