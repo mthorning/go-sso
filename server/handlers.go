@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/jwt"
 	"github.com/mthorning/go-sso/session"
@@ -51,15 +52,16 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var dbUser types.DbUser
+	var dbUser types.DBUser
 	doc.DataTo(&dbUser)
+	dbUser.ID = doc.Ref.ID
 
 	if err = bcrypt.CompareHashAndPassword(dbUser.Password, []byte(password)); err != nil {
 		sendError("Email or password incorrect")
 		return
 	}
 
-	if err := session.SetSession(w, r, doc.Ref.ID); err != nil {
+	if err := session.SetSession(w, r, &dbUser); err != nil {
 		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -157,13 +159,16 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	err := session.EndSession(w, r)
 	if err != nil {
 		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func HandleEdit(w http.ResponseWriter, r *http.Request) {
+	// FIXME: This is bound to session user - needs to work for any user!
 	sessionUser, err := getSessionUser(w, r)
 	if err != nil {
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -181,7 +186,6 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 			"Error": errorMessage,
 		})
 	}
-
 	if email == "" {
 		sendError("Email can't be blank")
 		return
@@ -193,6 +197,8 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 
 	unique, err := checkEmailUnique(w, email, sessionUser.ID)
 	if err != nil {
+
+		fmt.Println("Error", err.Error())
 		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -222,6 +228,7 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 func HandleChpwd(w http.ResponseWriter, r *http.Request) {
 	sessionUser, err := getSessionUser(w, r)
 	if err != nil {
+		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

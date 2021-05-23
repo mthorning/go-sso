@@ -22,13 +22,15 @@ func init() {
 	store = sessions.NewFilesystemStore("", []byte(conf.SessionKey))
 }
 
-func SetSession(w http.ResponseWriter, r *http.Request, userID string) error {
+func SetSession(w http.ResponseWriter, r *http.Request, user *types.DBUser) error {
 	s, err := store.Get(r, conf.SessionName)
 	if err != nil {
 		return err
 	}
 
-	s.Values["id"] = userID
+	s.Values["id"] = user.ID
+	s.Values["admin"] = user.Admin
+	s.Values["name"] = user.Name
 	err = s.Save(r, w)
 	if err != nil {
 		return err
@@ -50,8 +52,17 @@ func GetSession(w http.ResponseWriter, r *http.Request) (types.SessionUser, erro
 	if !ok {
 		return types.SessionUser{}, NoSessionError{}
 	}
+	id, ok = s.Values["id"].(string)
+	if !ok {
+		return types.SessionUser{}, NoSessionError{}
+	}
+	admin, ok := s.Values["admin"].(bool)
+	if !ok {
+		return types.SessionUser{}, NoSessionError{}
+	}
 	return types.SessionUser{
-		ID: id,
+		ID:    id,
+		Admin: admin,
 	}, nil
 }
 

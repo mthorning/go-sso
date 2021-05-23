@@ -14,7 +14,8 @@ type User struct {
 	Created time.Time
 }
 
-type DbUser struct {
+type DBUser struct {
+	ID       string
 	Name     string
 	Password []byte
 	Email    string
@@ -23,7 +24,8 @@ type DbUser struct {
 }
 
 type SessionUser struct {
-	ID string
+	ID    string
+	Admin bool
 }
 
 func (s *SessionUser) GetUser(u interface{}) error {

@@ -40,10 +40,11 @@ var routeConfig = server.RouteConfig{
 		userID := parts[len(parts)-1]
 
 		d := struct {
-			Name  string
-			Email string
-			Admin bool
-			Error string
+			Name         string
+			Email        string
+			Admin        bool
+			Error        string
+			SessionAdmin bool
 		}{}
 
 		docsnap, err := firestore.Users.Doc(userID).Get(context.Background())
@@ -54,7 +55,13 @@ var routeConfig = server.RouteConfig{
 		if err != nil {
 			return nil, err
 		}
-		d.SessionUser = s
+
+		e := struct {
+			Admin bool
+		}{}
+		err = s.GetUser(&e)
+		d.SessionAdmin = e.Admin
+
 		return d, err
 	},
 	"/chpwd": func(s *types.SessionUser) (interface{}, error) {
@@ -100,7 +107,7 @@ func main() {
 	r.HandleFunc("/register", server.HandleRegister).Methods("POST")
 	r.HandleFunc("/authn", server.HandleAuthn).Methods("POST")
 	r.HandleFunc("/logout", server.HandleLogout).Methods("POST")
-	r.HandleFunc("/edit", server.HandleEdit).Methods("POST")
+	r.HandleFunc("/edit/{id}", server.HandleEdit).Methods("POST")
 	r.HandleFunc("/chpwd", server.HandleChpwd).Methods("POST")
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
