@@ -4,6 +4,9 @@
 <h2>Edit User</h2>
 <form action="/edit" method="POST">
     {{template "userDetailFields" .}}
+		<input type="checkbox" id="admin" name="admin" {{and .Admin "checked"}}>
+				Admin
+		</input>
     <div class="row" style="margin:20px 0;">
         {{template "submitButton" "Update"}}
         {{template "cancelButton" "/"}}

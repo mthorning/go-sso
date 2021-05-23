@@ -42,6 +42,7 @@ var routeConfig = server.RouteConfig{
 		d := struct {
 			Name  string
 			Email string
+			Admin bool
 			Error string
 		}{}
 
@@ -53,6 +54,7 @@ var routeConfig = server.RouteConfig{
 		if err != nil {
 			return nil, err
 		}
+		d.SessionUser = s
 		return d, err
 	},
 	"/chpwd": func(s *types.SessionUser) (interface{}, error) {

@@ -34,6 +34,7 @@ func (a AuthRoutes) getData(path string) (interface{}, error) {
 			}
 		}
 	}
+	// allow this to fail silently so templates 404
 	return nil, nil
 }
 
