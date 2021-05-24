@@ -40,6 +40,7 @@ var routeConfig = server.RouteConfig{
 		userID := parts[len(parts)-1]
 
 		d := struct {
+			ID           string
 			Name         string
 			Email        string
 			Admin        bool
@@ -61,6 +62,7 @@ var routeConfig = server.RouteConfig{
 		}{}
 		err = s.GetUser(&e)
 		d.SessionAdmin = e.Admin
+		d.ID = userID
 
 		return d, err
 	},

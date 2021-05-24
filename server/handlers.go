@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/mthorning/go-sso/firestore"
 	"github.com/mthorning/go-sso/jwt"
 	"github.com/mthorning/go-sso/session"
@@ -171,6 +172,13 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	editUserID := mux.Vars(r)["id"]
+	if editUserID != sessionUser.ID && !sessionUser.Admin {
+		HTMLError(w, r, "Not an Admin User", http.StatusForbidden)
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
 		HTMLError(w, r, "Error reading form", http.StatusBadRequest)
 		return
@@ -178,6 +186,7 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 
 	email := r.PostFormValue("email")
 	name := r.PostFormValue("name")
+	admin := r.PostFormValue("admin")
 
 	var sendError = func(errorMessage string) {
 		ServeStaticPage(w, r, filepath.Clean(r.URL.Path), map[string]string{
@@ -195,7 +204,7 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	unique, err := checkEmailUnique(w, email, sessionUser.ID)
+	unique, err := checkEmailUnique(w, email, editUserID)
 	if err != nil {
 
 		fmt.Println("Error", err.Error())
@@ -207,7 +216,7 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = firestore.Users.Doc(sessionUser.ID).Update(context.Background(), []firestore.Update{
+	_, err = firestore.Users.Doc(editUserID).Update(context.Background(), []firestore.Update{
 		{
 			Path:  "Name",
 			Value: name,
@@ -215,6 +224,10 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 		{
 			Path:  "Email",
 			Value: email,
+		},
+		{
+			Path:  "Admin",
+			Value: admin,
 		},
 	})
 	if err != nil {

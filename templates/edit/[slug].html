@@ -2,7 +2,7 @@
 
 {{define "body"}}
 <h2>Edit User</h2>
-<form action="/edit" method="POST">
+<form action="/edit/{{.ID}}" method="POST"}>
     {{template "userDetailFields" .}}
 		{{if .SessionAdmin}}
 		<input type="checkbox" id="admin" name="admin" {{and .Admin "checked"}}>
