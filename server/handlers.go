@@ -166,7 +166,6 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleEdit(w http.ResponseWriter, r *http.Request) {
-	// FIXME: This is bound to session user - needs to work for any user!
 	sessionUser, err := getSessionUser(w, r)
 	if err != nil {
 		HTMLError(w, r, err.Error(), http.StatusInternalServerError)
@@ -186,7 +185,9 @@ func HandleEdit(w http.ResponseWriter, r *http.Request) {
 
 	email := r.PostFormValue("email")
 	name := r.PostFormValue("name")
-	admin := r.PostFormValue("admin")
+
+	// FIXME: Admins editing their own information end up removing their own admin priveleges
+	admin := r.PostFormValue("admin") != ""
 
 	var sendError = func(errorMessage string) {
 		ServeStaticPage(w, r, filepath.Clean(r.URL.Path), map[string]string{

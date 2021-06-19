@@ -13,9 +13,28 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 )
+
+func trace() string {
+	pc := make([]uintptr, 15)
+	n := runtime.Callers(2, pc)
+	frames := runtime.CallersFrames(pc[:n])
+
+	// skip first frame as that is the func which called this
+	_, _ = frames.Next()
+	trace := ""
+	for {
+		frame, more := frames.Next()
+		if !more {
+			break
+		}
+		trace = fmt.Sprintf("%s\n%s:%d", trace, frame.File, frame.Line)
+	}
+	return trace
+}
 
 func JSONError(w http.ResponseWriter, err string, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -33,10 +52,13 @@ func HTMLError(w http.ResponseWriter, r *http.Request, errStr string, code int) 
 		return
 	}
 
+	origin := trace()
+
 	if err := tmpl.ExecuteTemplate(w, "layout",
 		map[string]string{
-			"Code":  strconv.Itoa(code),
-			"Error": errStr,
+			"Code":   strconv.Itoa(code),
+			"Error":  errStr,
+			"Origin": origin,
 		}); err != nil {
 		http.Error(w, fmt.Sprintf("Error in HTMLError ExecuteTemplate: %s", err.Error()), http.StatusInternalServerError)
 		return

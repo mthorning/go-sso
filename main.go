@@ -57,11 +57,9 @@ var routeConfig = server.RouteConfig{
 			return nil, err
 		}
 
-		e := struct {
-			Admin bool
-		}{}
-		err = s.GetUser(&e)
-		d.SessionAdmin = e.Admin
+		// don't give admin priveleges to own user:
+		d.SessionAdmin = s.Admin && s.ID != userID
+
 		d.ID = userID
 
 		return d, err

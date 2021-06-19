@@ -3,4 +3,5 @@
 {{define "body"}}
 <h1>{{if .Code}}{{.Code}}{{else}}404{{end}}</h1>
 <h3>{{if .Error}}{{.Error}}{{else}}Page Not Found{{end}}</h3>
+<pre>{{.Origin}}</pre>
 {{end}}
