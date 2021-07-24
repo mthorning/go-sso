@@ -52,16 +52,14 @@ func GetSession(w http.ResponseWriter, r *http.Request) (types.SessionUser, erro
 	if !ok {
 		return types.SessionUser{}, NoSessionError{}
 	}
-	id, ok = s.Values["id"].(string)
-	if !ok {
-		return types.SessionUser{}, NoSessionError{}
-	}
 	admin, ok := s.Values["admin"].(bool)
+	name, ok := s.Values["name"].(string)
 	if !ok {
 		return types.SessionUser{}, NoSessionError{}
 	}
 	return types.SessionUser{
 		ID:    id,
+		Name:  name,
 		Admin: admin,
 	}, nil
 }

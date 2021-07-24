@@ -25,6 +25,7 @@ type DBUser struct {
 
 type SessionUser struct {
 	ID    string
+	Name  string
 	Admin bool
 }
 

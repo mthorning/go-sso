@@ -94,7 +94,7 @@ func getSessionUser(w http.ResponseWriter, r *http.Request) (types.SessionUser, 
 		if _, ok := err.(session.NoSessionError); ok {
 			HTMLError(w, r, err.Error(), http.StatusForbidden)
 		}
-		return types.SessionUser{}, errors.New("Error getting session user")
+		return types.SessionUser{}, errors.New("error getting session user")
 	}
 	return sessionUser, nil
 
@@ -117,7 +117,6 @@ func checkEmailUnique(w http.ResponseWriter, email, userID string) (bool, error)
 }
 
 func makeTemplate(w http.ResponseWriter, r *http.Request, files ...string) (*template.Template, error) {
-
 	funcMap := template.FuncMap{
 		"many": func(s ...string) []string {
 			return s

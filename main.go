@@ -25,16 +25,16 @@ func init() {
 }
 
 var routeConfig = server.RouteConfig{
-	"/index": func(s *types.SessionUser) (interface{}, error) {
-		d := struct {
-			ID    string
-			Admin bool
-			Name  string
-		}{}
-		err := s.GetUser(&d)
-		d.ID = s.ID
-		return d, err
-	},
+	// "/index": func(s *types.SessionUser) (interface{}, error) {
+	// 	d := struct {
+	// 		ID    string
+	// 		Admin bool
+	// 		Name  string
+	// 	}{}
+	// 	err := s.GetUser(&d)
+	// 	d.ID = s.ID
+	// 	return d, err
+	// },
 	"/edit/.*$": func(path string, s *types.SessionUser) (interface{}, error) {
 		parts := strings.Split(path, "/")
 		userID := parts[len(parts)-1]
